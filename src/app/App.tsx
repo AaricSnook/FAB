@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DotMatrix } from '../dot-matrix';
 import { ActivityTable } from './ActivityTable';
 import { type Basemap, MapView } from './MapView';
@@ -31,16 +31,6 @@ import {
 
 const LED = '#fff1dc';
 
-function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [w, setW] = useState(0);
-  useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setW(Math.floor(e.contentRect.width)));
-    ro.observe(ref.current!);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, w] as const;
-}
 
 export function App() {
   const [data, setData] = useState<ClubData | null>(null);
@@ -118,16 +108,6 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
     document.querySelector('.map-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const latest = data.activities[0];
-  const ticker = [
-    data.club.name,
-    `${km(t.distance)} KM ${period === 'all' ? 'ALL TIME' : `IN ${periodLabel}`}`,
-    `${t.count} ACTIVITIES`,
-    latest ? `LATEST: ${latest.athlete} - ${latest.name} ${km(latest.distance)} KM` : '',
-  ]
-    .filter(Boolean)
-    .join('   +   ')
-    .toUpperCase();
 
   return (
     <div className="page">
@@ -152,8 +132,6 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
           <span className="muted">Updated {when(data.generatedAt, now)}</span>
         </div>
       </header>
-
-      <Ticker text={ticker} />
 
       <section className="stats-head">
         <h2>Club totals</h2>
@@ -252,34 +230,6 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
           ? 'Showing generated demo data. Run the Strava sync to switch to the live club feed.'
           : 'Data from the Strava club feed. Dates are when the sync first saw each activity.'}
       </footer>
-    </div>
-  );
-}
-
-function Ticker({ text }: { text: string }) {
-  const [ref, w] = useWidth<HTMLDivElement>();
-  const dot = w < 560 ? 3 : 4;
-  const gap = w < 560 ? 1.4 : 1.8;
-  const cols = Math.max(20, Math.floor((w + gap) / (dot + gap)));
-  return (
-    <div className="ticker" ref={ref}>
-      {w > 0 && (
-        <DotMatrix
-          value={text}
-          cols={cols}
-          rows={9}
-          marquee
-          marqueeSpeed={18}
-          marqueeGap={16}
-          dotSize={dot}
-          gap={gap}
-          color={LED}
-          offOpacity={0.06}
-          glow={0.5}
-          transition="scramble"
-          label={text}
-        />
-      )}
     </div>
   );
 }

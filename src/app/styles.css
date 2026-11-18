@@ -69,10 +69,6 @@ button { font: inherit; color: inherit; }
 .badge i { width: 6px; height: 6px; border-radius: 50%; background: #fab219; }
 .badge.strava i { background: #0ca30c; }
 
-/* ---------- ticker ---------- */
-.ticker { padding: 14px 16px; border-radius: var(--r); background: #070706; border: 1px solid var(--line); overflow: hidden; }
-.ticker > span { display: block !important; }
-
 /* ---------- section heads ---------- */
 .stats-head, .events-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .stats-head h2, .events-head h2 { font-size: 20px; }
