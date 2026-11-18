@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DotMatrix } from '../dot-matrix';
 import { ActivityTable } from './ActivityTable';
-import { RouteMap } from './RouteMap';
+import { type Basemap, MapView } from './MapView';
 import {
   type ClubData,
+  type Hotspot,
+  type LatLng,
   type Period,
+  distanceM,
+  findHotspots,
   ICONS,
   PERIODS,
   byAthlete,
@@ -38,18 +42,57 @@ function useWidth<T extends HTMLElement>() {
 
 export function App() {
   const [data, setData] = useState<ClubData | null>(null);
+  const [base, setBase] = useState<Basemap | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadClub().then(setData, (e: Error) => setError(e.message));
+    // The basemap is optional: without it the map shows routes on a plain ground.
+    fetch('./data/basemap.json')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setBase, () => setBase(null));
   }, []);
 
   if (error) return <div className="state">{error}</div>;
-  if (!data) return <div className="state">Loading club…</div>;
-  return <Dashboard data={data} />;
+  if (!data || base === undefined) return <div className="state">Loading club…</div>;
+  return <Dashboard data={data} base={base} />;
 }
 
-function Dashboard({ data }: { data: ClubData }) {
+/** Label a point by the nearest named road, else the nearest place. */
+function namer(base: Basemap | null) {
+  const pts: [number, number, string][] = [];
+  if (base)
+    for (const f of base.features.features) {
+      const n = f.properties?.n as string | undefined;
+      if (!n || f.geometry.type !== 'LineString') continue;
+      for (const [lng, lat] of f.geometry.coordinates) pts.push([lat, lng, n]);
+    }
+  return (p: LatLng) => {
+    let best = '';
+    let bd = 250;
+    for (const [lat, lng, n] of pts) {
+      const d = distanceM(p, [lat, lng]);
+      if (d < bd) {
+        bd = d;
+        best = n;
+      }
+    }
+    let town = '';
+    let td = Infinity;
+    for (const pl of base?.places ?? []) {
+      if (pl.rank === 'hamlet') continue;
+      const d = distanceM(p, [pl.lat, pl.lng]);
+      if (d < td) {
+        td = d;
+        town = pl.name;
+      }
+    }
+    if (best && town) return `${best}, ${town}`;
+    return best || (town ? `Near ${town}` : `${p[0].toFixed(3)}, ${p[1].toFixed(3)}`);
+  };
+}
+
+function Dashboard({ data, base }: { data: ClubData; base: Basemap | null }) {
   const now = Date.now();
   const hasDates = data.activities.some((a) => a.date);
   const [period, setPeriod] = useState<Period>(hasDates ? '30d' : 'all');
@@ -59,7 +102,11 @@ function Dashboard({ data }: { data: ClubData }) {
   const periodLabel = PERIODS.find((p) => p.id === period)!.label;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = list.find((a) => a.id === selectedId) ?? list.find((a) => a.route) ?? list[0] ?? null;
+  const picked = list.find((a) => a.id === selectedId) ?? null;
+  const shown = picked ?? list.find((a) => a.route) ?? list[0] ?? null;
+  const nameAt = useMemo(() => namer(base), [base]);
+  const hotspots = useMemo(() => findHotspots(list, nameAt), [list, nameAt]);
+  const [focus, setFocus] = useState<Hotspot | null>(null);
 
   const latest = data.activities[0];
   const ticker = [
@@ -122,42 +169,67 @@ function Dashboard({ data }: { data: ClubData }) {
       <div className="main-grid">
         <section className="glass card map-card" aria-labelledby="m-title">
           <header className="card-head">
-            <h2 id="m-title">Route heatmap</h2>
-            <p className="muted small">Brighter dots are travelled more. Hover a route, click to open it.</p>
+            <h2 id="m-title">Club map</h2>
+            <p className="muted small">Every route this period. Hover to see who, click to trace it.</p>
           </header>
-          <RouteMap activities={list} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+          <MapView activities={list} base={base} hotspots={hotspots} focus={focus} selectedId={picked?.id ?? null} onSelect={setSelectedId} />
         </section>
 
         <div className="side">
-          {selected && <Selected a={selected} />}
-          <section className="glass card" aria-labelledby="l-title">
+          {shown && <Selected a={shown} latest={!picked} onClear={picked ? () => setSelectedId(null) : undefined} />}
+          <section className="glass card" aria-labelledby="h-title">
             <header className="card-head">
-              <h2 id="l-title">Leaderboard</h2>
-              <p className="muted small">Distance, {period === 'all' ? 'all time' : `last ${periodLabel}`}</p>
+              <h2 id="h-title">Hotspots</h2>
+              <p className="muted small">Where routes overlap most</p>
             </header>
-            <ol className="leaders">
-              {leaders.map((r, i) => (
-                <li key={r.athlete} title={`${r.athlete}: ${km(r.distance)} km over ${r.count} activities, ${duration(r.time)}`}>
-                  <span className="rank">{i + 1}</span>
-                  <span className="avatar" aria-hidden>
-                    {initials(r.athlete)}
-                  </span>
-                  <span className="lname">{r.athlete}</span>
-                  <span className="lval">
-                    {km(r.distance)} <small>km</small>
-                  </span>
-                  <span className="bar" aria-hidden>
-                    <span style={{ width: `${(r.distance / leaders[0].distance) * 100}%` }} />
-                  </span>
+            <ol className="hot-list">
+              {hotspots.map((h, i) => (
+                <li key={h.name + i}>
+                  <button onClick={() => setFocus({ ...h })}>
+                    <span className="hot-rank">{i + 1}</span>
+                    <span className="hot-name">{h.name}</span>
+                    <span className="hot-meta muted">
+                      {h.count} activities · {h.athletes} {h.athletes === 1 ? 'athlete' : 'athletes'}
+                    </span>
+                  </button>
                 </li>
               ))}
-              {!leaders.length && <li className="muted">No activities in this period.</li>}
+              {!hotspots.length && <li className="muted small">Not enough overlapping routes in this period.</li>}
             </ol>
           </section>
         </div>
       </div>
 
-      <ActivityTable activities={list} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+      <div className="lower-grid">
+        <ActivityTable activities={list} selectedId={picked?.id ?? null} onSelect={(id) => {
+          setSelectedId(id);
+          document.querySelector('.map-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }} />
+        <section className="glass card" aria-labelledby="l-title">
+          <header className="card-head">
+            <h2 id="l-title">Leaderboard</h2>
+            <p className="muted small">Distance, {period === 'all' ? 'all time' : `last ${periodLabel}`}</p>
+          </header>
+          <ol className="leaders">
+            {leaders.map((r, i) => (
+              <li key={r.athlete} title={`${r.athlete}: ${km(r.distance)} km over ${r.count} activities, ${duration(r.time)}`}>
+                <span className="rank">{i + 1}</span>
+                <span className="avatar" aria-hidden>
+                  {initials(r.athlete)}
+                </span>
+                <span className="lname">{r.athlete}</span>
+                <span className="lval">
+                  {km(r.distance)} <small>km</small>
+                </span>
+                <span className="bar" aria-hidden>
+                  <span style={{ width: `${(r.distance / leaders[0].distance) * 100}%` }} />
+                </span>
+              </li>
+            ))}
+            {!leaders.length && <li className="muted">No activities in this period.</li>}
+          </ol>
+        </section>
+      </div>
 
       <footer className="foot muted small">
         {data.source === 'demo'
@@ -209,7 +281,7 @@ function Stat({ label, value, unit, note }: { label: string; value: string; unit
   );
 }
 
-function Selected({ a }: { a: ClubData['activities'][number] }) {
+function Selected({ a, latest, onClear }: { a: ClubData['activities'][number]; latest: boolean; onClear?: () => void }) {
   const g = sportGroup(a.sport);
   const colour = groupColor(g);
   const svg = a.route ? routeSvg(a.route) : ICONS[g];
@@ -219,6 +291,14 @@ function Selected({ a }: { a: ClubData['activities'][number] }) {
         <DotMatrix svg={svg} layout="circle" cols={27} dotSize={3.4} gap={1.4} color={colour} offColor="#ffffff" offOpacity={0.07} glow={0.6} transition="flipdot" duration={900} svgOptions={{ threshold: 0.3 }} label={a.route ? `Route shape of ${a.name}` : sportLabel(a.sport)} />
       </div>
       <div className="sel-body">
+        <div className="sel-top">
+          <span className="sel-tag">{latest ? 'Latest' : 'Selected'}</span>
+          {onClear && (
+            <button className="sel-clear" onClick={onClear} aria-label="Clear selection">
+              ×
+            </button>
+          )}
+        </div>
         <div className="sel-kicker">
           <i className="swatch" style={{ background: colour }} />
           {sportLabel(a.sport)} · {when(a.date)}

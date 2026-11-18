@@ -202,3 +202,55 @@ export const ICONS: Record<SportGroup, string> = {
   Walk: stroke('<path d="M2 20 9 8l3.5 5.5L15.5 9 22 20Z"/><path d="M7.2 11 9 12.5l1.6-1.4"/>'),
   Other: stroke('<path d="M2 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2M2 20c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><circle cx="15" cy="6" r="2"/>'),
 };
+
+/* ---------- hotspots ---------- */
+
+export interface Hotspot {
+  center: LatLng;
+  /** Activities passing through. */
+  count: number;
+  athletes: number;
+  name: string;
+}
+
+const HOT_CELL = 0.0035; // ≈ 390 m of latitude
+
+/**
+ * Where the club's routes overlap most: route points binned into ~400 m cells,
+ * counted once per activity, then the busiest cells at least ~2 km apart.
+ * `nameAt` labels each one (e.g. the nearest named road).
+ */
+export function findHotspots(list: Activity[], nameAt: (p: LatLng) => string, max = 5): Hotspot[] {
+  const cells = new Map<string, { acts: Set<string>; athletes: Set<string>; lat: number; lng: number; n: number }>();
+  for (const a of list) {
+    if (!a.route) continue;
+    const k = Math.cos((a.route[0][0] * Math.PI) / 180);
+    const seen = new Set<string>();
+    for (const [lat, lng] of a.route) {
+      const key = `${Math.floor(lat / HOT_CELL)}:${Math.floor((lng * k) / HOT_CELL)}`;
+      let c = cells.get(key);
+      if (!c) cells.set(key, (c = { acts: new Set(), athletes: new Set(), lat: 0, lng: 0, n: 0 }));
+      c.lat += lat;
+      c.lng += lng;
+      c.n++;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      c.acts.add(a.id);
+      c.athletes.add(a.athlete);
+    }
+  }
+  const ranked = [...cells.values()].filter((c) => c.acts.size >= 3).sort((a, b) => b.acts.size - a.acts.size || b.athletes.size - a.athletes.size);
+  const out: Hotspot[] = [];
+  for (const c of ranked) {
+    const center: LatLng = [c.lat / c.n, c.lng / c.n];
+    if (out.some((h) => distanceM(h.center, center) < 2000)) continue;
+    out.push({ center, count: c.acts.size, athletes: c.athletes.size, name: nameAt(center) });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+export function distanceM([a1, o1]: LatLng, [a2, o2]: LatLng) {
+  const k = Math.cos((((a1 + a2) / 2) * Math.PI) / 180);
+  return Math.hypot(a2 - a1, (o2 - o1) * k) * 111_320;
+}
