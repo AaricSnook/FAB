@@ -131,8 +131,7 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
 
   return (
     <div className="page">
-      <div className="aurora" aria-hidden />
-      <header className="top glass">
+      <header className="top">
         <div className="brand">
           <DotMatrix svg={ICONS.Ride} label="" layout="circle" cols={21} dotSize={1.7} gap={0.7} color={LED} offOpacity={0.12} svgOptions={{ threshold: 0.35 }} />
           <div>
@@ -184,7 +183,7 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
       />
 
       <div className="main-grid">
-        <section className="glass card map-card" aria-labelledby="m-title">
+        <section className="panel card map-card" aria-labelledby="m-title">
           <header className="card-head">
             <h2 id="m-title">Club map</h2>
             <p className="muted small">Every route this period. Hover to see who, click to trace it.</p>
@@ -194,7 +193,7 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
 
         <div className="side">
           {shown && <Selected a={shown} latest={!picked} onClear={picked ? () => setSelectedId(null) : undefined} />}
-          <section className="glass card" aria-labelledby="h-title">
+          <section className="panel card" aria-labelledby="h-title">
             <header className="card-head">
               <h2 id="h-title">Hotspots</h2>
               <p className="muted small">Where routes overlap most</p>
@@ -222,7 +221,7 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
           setSelectedId(id);
           document.querySelector('.map-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }} />
-        <section className="glass card" aria-labelledby="l-title">
+        <section className="panel card" aria-labelledby="l-title">
           <header className="card-head">
             <h2 id="l-title">Leaderboard</h2>
             <p className="muted small">Distance, {period === 'all' ? 'all time' : `last ${periodLabel}`}</p>
@@ -263,7 +262,7 @@ function Ticker({ text }: { text: string }) {
   const gap = w < 560 ? 1.4 : 1.8;
   const cols = Math.max(20, Math.floor((w + gap) / (dot + gap)));
   return (
-    <div className="ticker glass" ref={ref}>
+    <div className="ticker" ref={ref}>
       {w > 0 && (
         <DotMatrix
           value={text}
@@ -275,8 +274,8 @@ function Ticker({ text }: { text: string }) {
           dotSize={dot}
           gap={gap}
           color={LED}
-          offOpacity={0.07}
-          glow={0.5}
+          offOpacity={0.06}
+          glow={0.15}
           transition="scramble"
           label={text}
         />
@@ -286,14 +285,38 @@ function Ticker({ text }: { text: string }) {
 }
 
 function Stat({ label, value, unit, note }: { label: string; value: string; unit: string; note: string }) {
+  // Count up from zero on load, then let the unlit dots fade away so the number stands alone.
+  const decimals = value.split('.')[1]?.length ?? 0;
+  const [shown, setShown] = useState(decimals ? `0.${'0'.repeat(decimals)}` : '0');
+  const [off, setOff] = useState(0.1);
+  useEffect(() => {
+    const t = setTimeout(() => setShown(value), 120);
+    return () => clearTimeout(t);
+  }, [value]);
+  useEffect(() => {
+    let raf = 0;
+    const t = setTimeout(() => {
+      const start = performance.now();
+      const step = (now: number) => {
+        const k = Math.min(1, (now - start) / 600);
+        setOff(Number((0.1 * (1 - k)).toFixed(3)));
+        if (k < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }, 1450);
+    return () => {
+      clearTimeout(t);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
   return (
-    <div className="glass stat">
+    <div className="panel stat">
       <div className="stat-label">{label}</div>
       <div className="stat-value">
-        <DotMatrix value={value} cols={41} rows={7} align="left" dotSize={4} gap={1.6} color={LED} offOpacity={0.08} glow={0.35} transition="count" duration={1100} live label={`${value} ${unit}`} />
+        <DotMatrix value={shown} rows={7} dotSize={4} gap={1.6} color={LED} offOpacity={off} transition="count" duration={1100} live label={`${value} ${unit}`} />
         {unit && <span className="unit">{unit}</span>}
       </div>
-      <div className="stat-note muted">{note}</div>
+      <div className="stat-note">{note}</div>
     </div>
   );
 }
@@ -303,9 +326,9 @@ function Selected({ a, latest, onClear }: { a: ClubData['activities'][number]; l
   const colour = groupColor(g);
   const svg = a.route ? routeSvg(a.route) : ICONS[g];
   return (
-    <section className="glass card selected-card" aria-label="Selected activity">
+    <section className="panel card selected-card" aria-label="Selected activity">
       <div className="sel-art" style={{ ['--c' as string]: colour }}>
-        <DotMatrix svg={svg} layout="circle" cols={27} dotSize={3.4} gap={1.4} color={colour} offColor="#ffffff" offOpacity={0.07} glow={0.6} transition="flipdot" duration={900} svgOptions={{ threshold: 0.3 }} label={a.route ? `Route shape of ${a.name}` : sportLabel(a.sport)} />
+        <DotMatrix svg={svg} layout="circle" cols={27} dotSize={3.4} gap={1.4} color={colour} offColor="#ffffff" offOpacity={0.07} glow={0.2} transition="flipdot" duration={900} svgOptions={{ threshold: 0.3 }} label={a.route ? `Route shape of ${a.name}` : sportLabel(a.sport)} />
       </div>
       <div className="sel-body">
         <div className="sel-top">

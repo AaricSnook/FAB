@@ -91,7 +91,7 @@ export function Events({ events, clubName, siteUrl, onShowOnMap }: Props) {
           ))}
         </div>
       ) : (
-        <p className="glass card muted">No events coming up. New ones appear here as soon as they're added.</p>
+        <p className="panel card muted">No events coming up. New ones appear here as soon as they're added.</p>
       )}
     </section>
   );
@@ -129,10 +129,10 @@ function EventCard({ e, clubName, siteUrl, icsOk, highlight, onShowOnMap }: { e:
   };
 
   return (
-    <article id={`event-${e.id}`} className={`glass event${highlight ? ' hl' : ''}`} style={{ ['--c' as string]: colour }}>
+    <article id={`event-${e.id}`} className={`panel event${highlight ? ' hl' : ''}`} style={{ ['--c' as string]: colour }}>
       <div className="event-date" aria-label={longFmt.format(start)}>
         <span className="ev-dow">{dayFmt.format(start)}</span>
-        <DotMatrix value={dateFmt.format(start)} dotSize={3} gap={1.2} color="#fff1dc" offOpacity={0} glow={0.4} transition="flipdot" label={longFmt.format(start)} />
+        <DotMatrix value={dateFmt.format(start)} dotSize={3} gap={1.2} color="#fff1dc" offOpacity={0} transition="flipdot" label={longFmt.format(start)} />
         <span className="ev-mon">{monFmt.format(start)}</span>
       </div>
       <div className="event-body">

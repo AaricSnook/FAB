@@ -40,7 +40,7 @@ export function ActivityTable({ activities, selectedId, onSelect }: Props) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === 'athlete' || key === 'name' ? 1 : -1 }));
 
   return (
-    <section className="glass card table-card" aria-labelledby="t-title">
+    <section className="panel card table-card" aria-labelledby="t-title">
       <header className="card-head">
         <h2 id="t-title">Activities</h2>
         <div className="chips" role="group" aria-label="Filter by sport">
