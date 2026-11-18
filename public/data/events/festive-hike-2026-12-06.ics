@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Fairly Average Athletes//Club feed//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Festive hike to Penshurst
+BEGIN:VEVENT
+UID:festive-hike-2026-12-06@2319889.club
+DTSTAMP:20261118T164816Z
+DTSTART:20261206T100000Z
+DTEND:20261206T140000Z
+SUMMARY:Festive hike to Penshurst · Fairly Average Athletes
+DESCRIPTION:Easy-going walk across the fields to Penshurst Place and back\,
+  with a pub lunch. Mud likely.
+LOCATION:Leigh village green
+GEO:51.196;0.214
+END:VEVENT
+END:VCALENDAR

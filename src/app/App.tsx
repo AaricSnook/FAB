@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DotMatrix } from '../dot-matrix';
 import { ActivityTable } from './ActivityTable';
 import { type Basemap, MapView } from './MapView';
+import { Events } from './Events';
 import {
   type ClubData,
-  type Hotspot,
+  type EventsFile,
+  type MapFocus,
   type LatLng,
   type Period,
   distanceM,
@@ -43,6 +45,7 @@ function useWidth<T extends HTMLElement>() {
 export function App() {
   const [data, setData] = useState<ClubData | null>(null);
   const [base, setBase] = useState<Basemap | null | undefined>(undefined);
+  const [events, setEvents] = useState<EventsFile>({ events: [] });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,11 +54,14 @@ export function App() {
     fetch('./data/basemap.json')
       .then((r) => (r.ok ? r.json() : null))
       .then(setBase, () => setBase(null));
+    fetch('./data/events.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .then(setEvents, () => {});
   }, []);
 
   if (error) return <div className="state">{error}</div>;
   if (!data || base === undefined) return <div className="state">Loading club…</div>;
-  return <Dashboard data={data} base={base} />;
+  return <Dashboard data={data} base={base} events={events} />;
 }
 
 /** Label a point by the nearest named road, else the nearest place. */
@@ -92,7 +98,7 @@ function namer(base: Basemap | null) {
   };
 }
 
-function Dashboard({ data, base }: { data: ClubData; base: Basemap | null }) {
+function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | null; events: EventsFile }) {
   const now = Date.now();
   const hasDates = data.activities.some((a) => a.date);
   const [period, setPeriod] = useState<Period>(hasDates ? '30d' : 'all');
@@ -106,7 +112,11 @@ function Dashboard({ data, base }: { data: ClubData; base: Basemap | null }) {
   const shown = picked ?? list.find((a) => a.route) ?? list[0] ?? null;
   const nameAt = useMemo(() => namer(base), [base]);
   const hotspots = useMemo(() => findHotspots(list, nameAt), [list, nameAt]);
-  const [focus, setFocus] = useState<Hotspot | null>(null);
+  const [focus, setFocus] = useState<MapFocus | null>(null);
+  const toMap = (f: MapFocus) => {
+    setFocus(f);
+    document.querySelector('.map-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const latest = data.activities[0];
   const ticker = [
@@ -166,13 +176,20 @@ function Dashboard({ data, base }: { data: ClubData; base: Basemap | null }) {
         <Stat label="Activities" value={int(t.count)} unit="" note={t.count ? `${km(t.distance / t.count)} km average` : '—'} />
       </section>
 
+      <Events
+        events={events.events}
+        clubName={data.club.name}
+        siteUrl={events.siteUrl ?? null}
+        onShowOnMap={(e) => e.location?.lat != null && toMap({ center: [e.location.lat, e.location.lng!], zoom: 15 })}
+      />
+
       <div className="main-grid">
         <section className="glass card map-card" aria-labelledby="m-title">
           <header className="card-head">
             <h2 id="m-title">Club map</h2>
             <p className="muted small">Every route this period. Hover to see who, click to trace it.</p>
           </header>
-          <MapView activities={list} base={base} hotspots={hotspots} focus={focus} selectedId={picked?.id ?? null} onSelect={setSelectedId} />
+          <MapView activities={list} base={base} hotspots={hotspots} events={events.events} focus={focus} selectedId={picked?.id ?? null} onSelect={setSelectedId} />
         </section>
 
         <div className="side">
@@ -185,7 +202,7 @@ function Dashboard({ data, base }: { data: ClubData; base: Basemap | null }) {
             <ol className="hot-list">
               {hotspots.map((h, i) => (
                 <li key={h.name + i}>
-                  <button onClick={() => setFocus({ ...h })}>
+                  <button onClick={() => setFocus({ center: h.center, zoom: 14.5 })}>
                     <span className="hot-rank">{i + 1}</span>
                     <span className="hot-name">{h.name}</span>
                     <span className="hot-meta muted">

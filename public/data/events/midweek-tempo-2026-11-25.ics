@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Fairly Average Athletes//Club feed//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Midweek towpath tempo
+BEGIN:VEVENT
+UID:midweek-tempo-2026-11-25@2319889.club
+DTSTAMP:20261118T164816Z
+DTSTART:20261125T190000Z
+DTEND:20261125T200000Z
+SUMMARY:Midweek towpath tempo · Fairly Average Athletes
+DESCRIPTION:Warm-up\, 3 x 10 minutes at tempo\, cool-down. Head torch essen
+ tial.
+LOCATION:Medway towpath\, Tonbridge Racecourse Sportsground
+GEO:51.1985;0.2765
+END:VEVENT
+END:VCALENDAR

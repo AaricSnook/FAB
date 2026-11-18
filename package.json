@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/build-ics.mjs && tsc && vite build",
     "prototype": "npm run build && node scripts/build-prototype.mjs",
     "preview": "vite preview",
     "sync": "node scripts/sync-strava.mjs",
-    "demo-data": "node scripts/make-demo-data.mjs"
+    "demo-data": "node scripts/make-demo-data.mjs",
+    "ics": "node scripts/build-ics.mjs"
   },
   "dependencies": {
     "maplibre-gl": "^4.7.1",

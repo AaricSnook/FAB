@@ -254,3 +254,31 @@ export function distanceM([a1, o1]: LatLng, [a2, o2]: LatLng) {
   const k = Math.cos((((a1 + a2) / 2) * Math.PI) / 180);
   return Math.hypot(a2 - a1, (o2 - o1) * k) * 111_320;
 }
+
+/* ---------- events ---------- */
+
+export interface ClubEvent {
+  id: string;
+  title: string;
+  sport: string;
+  /** ISO 8601 with offset. */
+  start: string;
+  end: string;
+  location?: { name: string; lat?: number; lng?: number };
+  description?: string;
+  /** Metres. */
+  distance?: number;
+  /** Link to the event on Strava, if it came from there. */
+  url?: string;
+}
+
+export interface EventsFile {
+  siteUrl?: string;
+  events: ClubEvent[];
+}
+
+/** Where the map should fly to. */
+export interface MapFocus {
+  center: LatLng;
+  zoom: number;
+}

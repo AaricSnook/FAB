@@ -10,6 +10,15 @@ npm run demo-data    # regenerate the demo dataset
 npm run prototype    # single-file build in dist-prototype/ for sharing
 ```
 
+## Events
+
+Events live in `public/data/events.json` (edit by hand; Strava's public API doesn't expose club events). Each build runs `scripts/build-ics.mjs`, which writes one `.ics` per event plus `club-events.ics` for subscribing. Each event card has:
+
+- **Add to calendar**: Google and Outlook links that open a pre-filled event, and the `.ics` file for Apple Calendar.
+- **Share**: a WhatsApp message with the date, meeting point and a link back to `#event-<id>`, or copy the message or link.
+
+Set `siteUrl` in `events.json` to the deployed address so shared links point there.
+
 ## Map
 
 `src/app/MapView.tsx` uses MapLibre GL (the open-source fork of Mapbox GL, same API). The basemap is drawn from `public/data/basemap.json`, which `node scripts/fetch-basemap.mjs` builds from OpenStreetMap (roads, paths, water, woods, place names), so no tile server or API key is needed. To use Mapbox instead, swap `baseStyle()` for a Mapbox style URL plus an access token; the route, heat, hotspot and selection layers stay the same.

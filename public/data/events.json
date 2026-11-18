@@ -1,0 +1,46 @@
+{
+  "note": "Hand-edited list of club events. Times are ISO 8601 with offset. Run `npm run ics` (or any build) after editing to refresh the calendar files.",
+  "siteUrl": "https://claude.ai/artifact/Nd8GNbXMv8q33zntGGkbyo",
+  "events": [
+    {
+      "id": "parkrun-coffee-2026-11-21",
+      "title": "Parkrun + coffee",
+      "sport": "Run",
+      "start": "2026-11-21T09:00:00+00:00",
+      "end": "2026-11-21T10:30:00+00:00",
+      "location": { "name": "Tonbridge parkrun, lower castle car park", "lat": 51.1962, "lng": 0.2700 },
+      "description": "5k at whatever pace you like, then coffee by the castle. Bring your barcode.",
+      "distance": 5000
+    },
+    {
+      "id": "sunday-social-2026-11-22",
+      "title": "Sunday social ride",
+      "sport": "Ride",
+      "start": "2026-11-22T08:30:00+00:00",
+      "end": "2026-11-22T11:30:00+00:00",
+      "location": { "name": "Tonbridge Castle gatehouse", "lat": 51.1963, "lng": 0.2727 },
+      "description": "No-drop loop out through Penshurst and back via Hildenborough. Cafe stop at halfway. Lights and a spare tube, please.",
+      "distance": 60000
+    },
+    {
+      "id": "midweek-tempo-2026-11-25",
+      "title": "Midweek towpath tempo",
+      "sport": "Run",
+      "start": "2026-11-25T19:00:00+00:00",
+      "end": "2026-11-25T20:00:00+00:00",
+      "location": { "name": "Medway towpath, Tonbridge Racecourse Sportsground", "lat": 51.1985, "lng": 0.2765 },
+      "description": "Warm-up, 3 x 10 minutes at tempo, cool-down. Head torch essential.",
+      "distance": 10000
+    },
+    {
+      "id": "festive-hike-2026-12-06",
+      "title": "Festive hike to Penshurst",
+      "sport": "Hike",
+      "start": "2026-12-06T10:00:00+00:00",
+      "end": "2026-12-06T14:00:00+00:00",
+      "location": { "name": "Leigh village green", "lat": 51.1960, "lng": 0.2140 },
+      "description": "Easy-going walk across the fields to Penshurst Place and back, with a pub lunch. Mud likely.",
+      "distance": 14000
+    }
+  ]
+}

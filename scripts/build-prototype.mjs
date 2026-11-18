@@ -1,7 +1,7 @@
 // Packs dist/ into one self-contained page (inline JS + CSS) for sharing as a
 // hosted prototype; data files are published next to it under data/.
 // Run after `vite build`: node scripts/build-prototype.mjs
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, cpSync, rmSync } from 'node:fs';
 
 const dist = new URL('../dist/', import.meta.url);
 const out = new URL('../dist-prototype/', import.meta.url);
@@ -19,7 +19,8 @@ const html = `<title>Fairly Average Athletes</title>
 <div id="root"></div>
 <script type="module">${js}</script>
 `;
-mkdirSync(new URL('data/', out), { recursive: true });
+rmSync(out, { recursive: true, force: true });
+mkdirSync(out, { recursive: true });
 writeFileSync(new URL('index.html', out), html);
-for (const f of ['club.json', 'basemap.json']) copyFileSync(new URL(`../public/data/${f}`, import.meta.url), new URL(`data/${f}`, out));
+cpSync(new URL('data/', dist), new URL('data/', out), { recursive: true });
 console.log(`dist-prototype/index.html ${(html.length / 1e6).toFixed(2)} MB`);

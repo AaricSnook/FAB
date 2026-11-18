@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Fairly Average Athletes//Club feed//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Parkrun + coffee
+BEGIN:VEVENT
+UID:parkrun-coffee-2026-11-21@2319889.club
+DTSTAMP:20261118T164816Z
+DTSTART:20261121T090000Z
+DTEND:20261121T103000Z
+SUMMARY:Parkrun + coffee · Fairly Average Athletes
+DESCRIPTION:5k at whatever pace you like\, then coffee by the castle. Bring
+  your barcode.
+LOCATION:Tonbridge parkrun\, lower castle car park
+GEO:51.1962;0.27
+END:VEVENT
+END:VCALENDAR

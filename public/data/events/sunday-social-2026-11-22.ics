@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Fairly Average Athletes//Club feed//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Sunday social ride
+BEGIN:VEVENT
+UID:sunday-social-2026-11-22@2319889.club
+DTSTAMP:20261118T164816Z
+DTSTART:20261122T083000Z
+DTEND:20261122T113000Z
+SUMMARY:Sunday social ride · Fairly Average Athletes
+DESCRIPTION:No-drop loop out through Penshurst and back via Hildenborough. 
+ Cafe stop at halfway. Lights and a spare tube\, please.
+LOCATION:Tonbridge Castle gatehouse
+GEO:51.1963;0.2727
+END:VEVENT
+END:VCALENDAR

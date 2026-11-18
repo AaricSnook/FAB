@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl, { type GeoJSONSource, type Map as MLMap, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { type Activity, type Hotspot, type LatLng, groupColor, km, sportGroup, when } from './lib';
+import { type Activity, type ClubEvent, type Hotspot, type LatLng, type MapFocus, groupColor, km, sportGroup, when } from './lib';
 
 /**
  * Basemap: OpenStreetMap features shipped as one GeoJSON file (`k` = kind),
@@ -58,13 +58,15 @@ interface Props {
   activities: Activity[];
   base: Basemap | null;
   hotspots: Hotspot[];
-  /** Fly to this hotspot when it changes. */
-  focus: Hotspot | null;
+  /** Upcoming events, pinned at their meeting points. */
+  events: ClubEvent[];
+  /** Fly here when it changes. */
+  focus: MapFocus | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-export function MapView({ activities, base, hotspots, focus, selectedId, onSelect }: Props) {
+export function MapView({ activities, base, hotspots, events, focus, selectedId, onSelect }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -249,8 +251,28 @@ export function MapView({ activities, base, hotspots, focus, selectedId, onSelec
   useEffect(() => {
     const m = map.current;
     if (!m || !ready || !focus) return;
-    m.flyTo({ center: lngLat(focus.center), zoom: 14.5, duration: 1100 });
+    m.flyTo({ center: lngLat(focus.center), zoom: focus.zoom, duration: 1100 });
   }, [ready, focus]);
+
+  /* ---------- event pins ---------- */
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    const now = Date.now();
+    const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short' });
+    const pins = events
+      .filter((e) => e.location?.lat != null && Date.parse(e.end) > now)
+      .map((e) => {
+        const node = document.createElement('a');
+        node.className = 'event-pin';
+        node.href = `#event-${e.id}`;
+        node.style.setProperty('--c', groupColor(sportGroup(e.sport)));
+        node.innerHTML = `<b>${fmt.format(new Date(e.start))}</b><span>${e.title.replace(/[<&>]/g, '')}</span>`;
+        node.title = `${e.title}, ${e.location!.name}`;
+        return new maplibregl.Marker({ element: node, anchor: 'bottom' }).setLngLat([e.location!.lng!, e.location!.lat!]).addTo(m);
+      });
+    return () => pins.forEach((p) => p.remove());
+  }, [ready, events]);
 
   /* ---------- selection: fit and trace ---------- */
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
