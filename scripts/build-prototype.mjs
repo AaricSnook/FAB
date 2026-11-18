@@ -14,7 +14,7 @@ const html = `<title>Fairly Average Athletes</title>
 <meta name="theme-color" content="#07080c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..700&family=Space+Grotesk:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400..800&display=swap">
 <style>html,body{background:#07080c;color-scheme:dark}${css}</style>
 <div id="root"></div>
 <script type="module">${js}</script>
