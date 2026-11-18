@@ -275,7 +275,7 @@ function Ticker({ text }: { text: string }) {
           gap={gap}
           color={LED}
           offOpacity={0.06}
-          glow={0.15}
+          glow={0.5}
           transition="scramble"
           label={text}
         />
@@ -313,7 +313,7 @@ function Stat({ label, value, unit, note }: { label: string; value: string; unit
     <div className="panel stat">
       <div className="stat-label">{label}</div>
       <div className="stat-value">
-        <DotMatrix value={shown} rows={7} dotSize={4} gap={1.6} color={LED} offOpacity={off} transition="count" duration={1100} live label={`${value} ${unit}`} />
+        <DotMatrix value={shown} rows={7} dotSize={4} gap={1.6} color={LED} offOpacity={off} glow={0.35} transition="count" duration={1100} live label={`${value} ${unit}`} />
         {unit && <span className="unit">{unit}</span>}
       </div>
       <div className="stat-note">{note}</div>
@@ -326,9 +326,9 @@ function Selected({ a, latest, onClear }: { a: ClubData['activities'][number]; l
   const colour = groupColor(g);
   const svg = a.route ? routeSvg(a.route) : ICONS[g];
   return (
-    <section className="panel card selected-card" aria-label="Selected activity">
+    <section className="panel card selected-card" aria-label="Selected activity" style={{ ['--c' as string]: colour }}>
       <div className="sel-art" style={{ ['--c' as string]: colour }}>
-        <DotMatrix svg={svg} layout="circle" cols={27} dotSize={3.4} gap={1.4} color={colour} offColor="#ffffff" offOpacity={0.07} glow={0.2} transition="flipdot" duration={900} svgOptions={{ threshold: 0.3 }} label={a.route ? `Route shape of ${a.name}` : sportLabel(a.sport)} />
+        <DotMatrix svg={svg} layout="circle" cols={27} dotSize={3.4} gap={1.4} color={colour} offColor="#ffffff" offOpacity={0.07} glow={0.6} transition="flipdot" duration={900} svgOptions={{ threshold: 0.3 }} label={a.route ? `Route shape of ${a.name}` : sportLabel(a.sport)} />
       </div>
       <div className="sel-body">
         <div className="sel-top">

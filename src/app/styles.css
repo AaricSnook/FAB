@@ -1,6 +1,6 @@
 /*
-  LAYOUT: a quiet warm-black board; panels are hairline-edged plates, not floating glass.
-  The dot-matrix LEDs are the only thing that glows. Sport colours carry identity, nothing else is saturated.
+  LAYOUT: a quiet warm-black board; panels are hairline-edged plates.
+  LEDs glow (displays, primary buttons, bars); sport colours tint their own cards with a soft wash.
   TYPE: Space Grotesk for headings, labels and figures; Manrope for reading text.
 */
 :root {
@@ -105,7 +105,7 @@ button { font: inherit; color: inherit; }
 .seg-sm { padding: 2px; border-color: transparent; background: none; }
 .seg-sm button { padding: 4px 10px; min-height: 28px; font-size: 12.5px; }
 .chip-sm { min-height: 30px; padding: 3px 10px; font-size: 12.5px; }
-.hot-swatch { background: var(--hot); }
+.hot-swatch { background: var(--hot); box-shadow: 0 0 6px var(--hot); }
 .map-note { position: absolute; inset: auto 0 16px; text-align: center; color: var(--muted); font-size: 13px; pointer-events: none; }
 .place { font: 500 11px/1 var(--display); color: #8f8a84; letter-spacing: 0.03em; text-shadow: 0 0 3px #0b0d12, 0 0 8px #0b0d12; pointer-events: none; white-space: nowrap; }
 .place-town { font-size: 12.5px; font-weight: 600; color: #cfcac2; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -113,7 +113,7 @@ button { font: inherit; color: inherit; }
 .hotspot {
   --s: 1; width: calc(24px * var(--s)); height: calc(24px * var(--s)); border-radius: 50%; padding: 0; cursor: pointer;
   display: grid; place-items: center; border: 1.5px solid var(--hot); color: var(--ink);
-  background: rgb(245 167 66 / 0.22); font: 600 11px var(--display);
+  background: rgb(245 167 66 / 0.22); font: 600 11px var(--display); box-shadow: 0 0 14px -2px rgb(245 167 66 / 0.55);
 }
 .hotspot:hover { background: rgb(245 167 66 / 0.5); }
 .maplibregl-ctrl-group { background: rgb(18 17 16 / 0.85) !important; border: 1px solid var(--line-strong); border-radius: 10px !important; box-shadow: none !important; overflow: hidden; }
@@ -150,7 +150,9 @@ button { font: inherit; color: inherit; }
 .sel-tag { font: 500 11px var(--display); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
 .sel-clear { margin-left: auto; border: 1px solid var(--line); background: none; width: 26px; height: 26px; border-radius: 7px; cursor: pointer; font-size: 15px; line-height: 1; color: var(--muted); }
 .sel-clear:hover { color: var(--ink); border-color: var(--line-strong); }
+.selected-card { background: radial-gradient(90% 100% at 0% 50%, color-mix(in srgb, var(--c) 10%, transparent), transparent 60%), var(--surface); }
 .selected-card { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }
+.sel-art { padding: 6px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), transparent 70%); }
 .sel-art canvas { border-radius: 50%; }
 .sel-kicker { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
 .sel-body h3 { font-size: 19px; margin-top: 4px; }
@@ -167,8 +169,8 @@ button { font: inherit; color: inherit; }
 .lname { font-weight: 600; font-size: 14px; }
 .lval { font: 500 14px var(--display); font-variant-numeric: tabular-nums; }
 .lval small, td small { color: var(--faint); font-size: 0.85em; }
-.bar { grid-column: 3 / -1; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
-.bar span { display: block; height: 100%; border-radius: 2px; background: var(--led); transition: width 0.6s cubic-bezier(.2,.8,.2,1); }
+.bar { grid-column: 3 / -1; height: 4px; border-radius: 2px; background: var(--surface-2); }
+.bar span { display: block; height: 100%; border-radius: 2px; background: var(--led); box-shadow: 0 0 10px rgb(255 241 220 / 0.45); transition: width 0.6s cubic-bezier(.2,.8,.2,1); }
 .avatar {
   display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; flex: none;
   font: 600 10.5px var(--display); letter-spacing: 0.03em; color: var(--ink);
@@ -215,10 +217,18 @@ tbody tr:focus-visible { outline: 2px solid var(--led); outline-offset: -2px; }
 .event-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .event {
   position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; gap: 16px;
-  padding: 16px; transition: border-color 0.3s, background 0.3s;
+  padding: 16px; transition: border-color 0.25s, box-shadow 0.25s;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--c) 19%, transparent), transparent 62%),
+    var(--surface);
+}
+.event:hover, .event:focus-within {
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 25%, transparent), 0 0 36px -6px color-mix(in srgb, var(--c) 60%, transparent);
 }
 .event:has(details[open]) { z-index: 5; }
-.event.hl { border-color: var(--led); background: var(--surface-2); }
+.event.hl { border-color: var(--led); box-shadow: 0 0 0 1px var(--led), 0 0 30px -6px rgb(255 241 220 / 0.45); }
+@media (prefers-reduced-motion: reduce) { .event { transition: none; } }
 .event-date {
   align-self: start; display: grid; justify-items: center; gap: 6px; width: 60px; padding: 10px 0 9px; border-radius: 10px;
   background: #070706; border: 1px solid var(--line);
@@ -240,6 +250,7 @@ tbody tr:focus-visible { outline: 2px solid var(--led); outline-offset: -2px; }
 .btn {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 6px 14px; border-radius: var(--r-sm); cursor: pointer;
   font: 600 13.5px var(--display); white-space: nowrap; color: #15120e; background: var(--led);
+  box-shadow: 0 0 18px -6px rgb(255 241 220 / 0.6);
 }
 .btn::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); opacity: 0.6; }
 .menu[open] .btn::after { transform: translateY(1px) rotate(-135deg); }
