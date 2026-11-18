@@ -174,7 +174,11 @@ export function MapView({ activities, base, hotspots, events, focus, selectedId,
       setReady(true);
     });
     map.current = m;
+    // Keep the canvas matched to its box, which now stretches with the row.
+    const ro = new ResizeObserver(() => m.resize());
+    ro.observe(el.current!);
     return () => {
+      ro.disconnect();
       m.remove();
       map.current = null;
     };
