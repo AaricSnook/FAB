@@ -179,7 +179,7 @@ function Dashboard({ data, base, events }: { data: ClubData; base: Basemap | nul
         events={events.events}
         clubName={data.club.name}
         siteUrl={events.siteUrl ?? null}
-        onShowOnMap={(e) => e.location?.lat != null && toMap({ center: [e.location.lat, e.location.lng!], zoom: 15 })}
+        onShowOnMap={(e) => e.location?.lat != null && toMap({ center: [e.location.lat, e.location.lng!], zoom: 15, showEvents: true })}
       />
 
       <div className="main-grid">

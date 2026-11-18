@@ -281,4 +281,6 @@ export interface EventsFile {
 export interface MapFocus {
   center: LatLng;
   zoom: number;
+  /** Turn the event pins on when flying here. */
+  showEvents?: boolean;
 }

@@ -72,9 +72,9 @@ export function MapView({ activities, base, hotspots, events, focus, selectedId,
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<Mode>('lines');
   const [showHot, setShowHot] = useState(true);
+  const [showEvents, setShowEvents] = useState(false);
   const [tip, setTip] = useState<{ x: number; y: number; ids: string[] } | null>(null);
   const placeMarkers = useRef<maplibregl.Marker[]>([]);
-  const hotMarkers = useRef<maplibregl.Marker[]>([]);
 
   const mapped = useMemo(() => activities.filter((a) => a.route && a.route.length > 1), [activities]);
   const byId = useMemo(() => new Map(mapped.map((a) => [a.id, a])), [mapped]);
@@ -233,50 +233,119 @@ export function MapView({ activities, base, hotspots, events, focus, selectedId,
     m.setLayoutProperty('routes', 'visibility', mode === 'lines' ? 'visible' : 'none');
   }, [ready, mode]);
 
-  /* ---------- hotspots ---------- */
+  /* ---------- clustering ---------- */
+  // Markers closer than this on screen merge into one; recomputed after every zoom.
+  const CLUSTER_PX = 46;
+  const [view, setView] = useState(0);
   useEffect(() => {
     const m = map.current;
     if (!m || !ready) return;
-    hotMarkers.current.forEach((mk) => mk.remove());
-    hotMarkers.current = showHot
-      ? hotspots.map((h, i) => {
-          const node = document.createElement('button');
-          node.className = 'hotspot';
-          node.style.setProperty('--s', String(0.75 + 0.5 * (h.count / hotspots[0].count)));
-          node.innerHTML = `<span>${i + 1}</span>`;
-          node.title = `${h.name}: ${h.count} activities, ${h.athletes} athletes`;
-          node.setAttribute('aria-label', node.title);
-          node.onclick = () => m.flyTo({ center: lngLat(h.center), zoom: Math.max(m.getZoom(), 14), duration: 900 });
-          return new maplibregl.Marker({ element: node }).setLngLat(lngLat(h.center)).addTo(m);
-        })
-      : [];
-  }, [ready, hotspots, showHot]);
+    const bump = () => setView((v) => v + 1);
+    m.on('zoomend', bump);
+    return () => {
+      m.off('zoomend', bump);
+    };
+  }, [ready]);
+
+  function cluster<T>(items: T[], at: (t: T) => [number, number]) {
+    const m = map.current!;
+    const groups: { seed: { x: number; y: number }; items: T[] }[] = [];
+    for (const it of items) {
+      const p = m.project(at(it));
+      const g = groups.find((g) => Math.hypot(g.seed.x - p.x, g.seed.y - p.y) < CLUSTER_PX);
+      if (g) g.items.push(it);
+      else groups.push({ seed: { x: p.x, y: p.y }, items: [it] });
+    }
+    return groups;
+  }
+
+  /** Keep marker clicks from also reaching the route layer underneath. */
+  const isolate = (node: HTMLElement) => {
+    for (const type of ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'dblclick'])
+      node.addEventListener(type, (e) => e.stopPropagation());
+  };
+
+  const zoomTo = (points: [number, number][]) => {
+    const m = map.current!;
+    const b = new maplibregl.LngLatBounds();
+    points.forEach((p) => b.extend(p));
+    m.fitBounds(b, { padding: 110, maxZoom: 15, duration: 900 });
+  };
+
+  /* ---------- hotspots ---------- */
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || !showHot || !hotspots.length) return;
+    const ranked = hotspots.map((h, i) => ({ h, rank: i + 1 }));
+    const markers = cluster(ranked, (r) => lngLat(r.h.center)).map((g) => {
+      const node = document.createElement('button');
+      const top = g.items[0];
+      const at = lngLat(top.h.center);
+      if (g.items.length === 1) {
+        node.className = 'hotspot';
+        node.style.setProperty('--s', String(0.75 + 0.5 * (top.h.count / hotspots[0].count)));
+        node.innerHTML = `<span>${top.rank}</span>`;
+        node.title = `${top.h.name}: ${top.h.count} activities, ${top.h.athletes} athletes`;
+        node.onclick = () => m.flyTo({ center: at, zoom: Math.max(m.getZoom(), 14), duration: 900 });
+      } else {
+        node.className = 'hotspot hotspot-cluster';
+        node.innerHTML = `<span>${top.rank}</span><em>+${g.items.length - 1}</em>`;
+        node.title = `${g.items.length} hotspots: ${g.items.map((r) => r.h.name).join('; ')}. Zoom in to separate them.`;
+        node.onclick = () => zoomTo(g.items.map((r) => lngLat(r.h.center)));
+      }
+      node.setAttribute('aria-label', node.title);
+      isolate(node);
+      return new maplibregl.Marker({ element: node }).setLngLat(at).addTo(m);
+    });
+    return () => markers.forEach((mk) => mk.remove());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, hotspots, showHot, view]);
 
   useEffect(() => {
     const m = map.current;
     if (!m || !ready || !focus) return;
+    if (focus.showEvents) setShowEvents(true);
     m.flyTo({ center: lngLat(focus.center), zoom: focus.zoom, duration: 1100 });
   }, [ready, focus]);
 
   /* ---------- event pins ---------- */
   useEffect(() => {
     const m = map.current;
-    if (!m || !ready) return;
+    if (!m || !ready || !showEvents) return;
     const now = Date.now();
     const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short' });
-    const pins = events
-      .filter((e) => e.location?.lat != null && Date.parse(e.end) > now)
-      .map((e) => {
-        const node = document.createElement('a');
+    const esc = (t: string) => t.replace(/[<&>"]/g, '');
+    const upcoming = events.filter((e) => e.location?.lat != null && Date.parse(e.end) > now).sort((a, b) => a.start.localeCompare(b.start));
+    const pt = (e: ClubEvent): [number, number] => [e.location!.lng!, e.location!.lat!];
+    const pins = cluster(upcoming, pt).map((g) => {
+      const first = g.items[0];
+      const node = document.createElement('a');
+      node.style.setProperty('--c', g.items.length === 1 ? groupColor(sportGroup(first.sport)) : 'var(--led)');
+      if (g.items.length === 1) {
         node.className = 'event-pin';
-        node.href = `#event-${e.id}`;
-        node.style.setProperty('--c', groupColor(sportGroup(e.sport)));
-        node.innerHTML = `<b>${fmt.format(new Date(e.start))}</b><span>${e.title.replace(/[<&>]/g, '')}</span>`;
-        node.title = `${e.title}, ${e.location!.name}`;
-        return new maplibregl.Marker({ element: node, anchor: 'bottom' }).setLngLat([e.location!.lng!, e.location!.lat!]).addTo(m);
-      });
+        node.href = `#event-${first.id}`;
+        node.innerHTML = `<b>${fmt.format(new Date(first.start))}</b><span>${esc(first.title)}</span>`;
+        node.title = `${first.title}, ${first.location!.name}`;
+      } else {
+        const last = g.items[g.items.length - 1];
+        node.className = 'event-pin event-pin-cluster';
+        node.href = '#';
+        node.innerHTML = `<b>${fmt.format(new Date(first.start))} – ${fmt.format(new Date(last.start))}</b><span>${g.items.length} events</span><i>${g.items
+          .map((e) => `<s style="background:${groupColor(sportGroup(e.sport))}"></s>`)
+          .join('')}</i>`;
+        node.title = `${g.items.length} events: ${g.items.map((e) => e.title).join('; ')}. Click to zoom in.`;
+        node.onclick = (ev) => {
+          ev.preventDefault();
+          zoomTo(g.items.map(pt));
+        };
+      }
+      node.setAttribute('aria-label', node.title);
+      isolate(node);
+      return new maplibregl.Marker({ element: node, anchor: 'bottom' }).setLngLat(pt(first)).addTo(m);
+    });
     return () => pins.forEach((p) => p.remove());
-  }, [ready, events]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, events, showEvents, view]);
 
   /* ---------- selection: fit and trace ---------- */
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
@@ -336,6 +405,9 @@ export function MapView({ activities, base, hotspots, events, focus, selectedId,
         </div>
         <button className={`chip chip-sm${showHot ? ' on' : ''}`} aria-pressed={showHot} onClick={() => setShowHot((v) => !v)}>
           <i className="swatch hot-swatch" /> Hotspots
+        </button>
+        <button className={`chip chip-sm${showEvents ? ' on' : ''}`} aria-pressed={showEvents} onClick={() => setShowEvents((v) => !v)}>
+          <i className="swatch ev-swatch" /> Events
         </button>
         <button className="chip chip-sm" onClick={fitAll}>
           Fit all
